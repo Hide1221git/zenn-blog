@@ -1,6 +1,6 @@
 import feedparser
 import requests
-import openai
+from openai import OpenAI
 import os
 import sys
 
@@ -13,8 +13,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not SLACK_WEBHOOK_URL or not OPENAI_API_KEY:
     print("環境変数 SLACK_WEBHOOK_URL または OPENAI_API_KEY が設定されていません。", file=sys.stderr)
     sys.exit(1)
-
-openai.api_key = OPENAI_API_KEY
 
 # === AWSの最新フィードを取得 ===
 def fetch_aws_update():
@@ -31,6 +29,8 @@ def fetch_aws_update():
 
 # === OpenAI GPTで要約を作成 ===
 def summarize_with_openai(title, summary):
+    client = OpenAI(api_key=OPENAI_API_KEY)
+
     prompt = f"""
 以下はAWS公式のアップデート情報です。
 Zennに投稿できるような技術ブログ風のMarkdown形式の要約を作成してください。
@@ -41,10 +41,12 @@ Zennに投稿できるような技術ブログ風のMarkdown形式の要約を�
 ## 概要
 {summary}
 """
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
         messages=[{"role": "user", "content": prompt}]
     )
+
     return response.choices[0].message.content.strip()
 
 # === Slackに通知 ===
