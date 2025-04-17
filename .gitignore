@@ -1,0 +1,16 @@
+# Python virtual environment
+.venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VSCode settings (if applicable)
+.vscode/
+
+# Jupyter Notebook checkpoints (if使うなら)
+.ipynb_checkpoints/
+
+# Mac特有のファイル
+.DS_Store
