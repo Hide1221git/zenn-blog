@@ -7,7 +7,8 @@ import sys
 
 # === 設定 ===
 AWS_RSS_URL = "https://aws.amazon.com/new/feed/"
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+# Github Secretsに保存してあるものを取得
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL") 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # === バリデーション ===
@@ -48,63 +49,17 @@ Zennに投稿できるような技術ブログ風のMarkdown形式の要約を�
         messages=[{"role": "user", "content": prompt}]
     )
 
-    return response.choices[0].message.content.strip()
-
-# === 今日のOpenAI使用料（ドル）を取得 ===
-def get_today_usage_dollars():
-    today = datetime.date.today()
-    start = today.strftime("%Y-%m-%d")
-    end = today.strftime("%Y-%m-%d")
-
-    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
-    url = f"https://api.openai.com/v1/dashboard/billing/usage?start_date={start}&end_date={end}"
-    res = requests.get(url, headers=headers)
-    if res.status_code == 200:
-        cents = res.json().get("total_usage", 0)
-        return f"${cents / 100:.4f}"
-    else:
-        return "取得失敗"
-
-# === 今月の上限・使用量・残高を取得 ===
-def get_openai_usage_and_limit():
-    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
-
-    # 利用上限
-    limit_res = requests.get("https://api.openai.com/v1/dashboard/billing/subscription", headers=headers)
-    if limit_res.status_code != 200:
-        return "上限取得失敗", "使用量取得失敗", "残高取得失敗"
-    hard_limit_usd = limit_res.json().get("hard_limit_usd", 0.0)
-
-    # 今月の使用量
-    today = datetime.date.today()
-    start_date = today.replace(day=1).strftime("%Y-%m-%d")
-    end_date = today.strftime("%Y-%m-%d")
-    usage_url = f"https://api.openai.com/v1/dashboard/billing/usage?start_date={start_date}&end_date={end_date}"
-    usage_res = requests.get(usage_url, headers=headers)
-    if usage_res.status_code != 200:
-        return f"${hard_limit_usd:.2f}", "使用量取得失敗", "残高取得失敗"
-
-    usage_usd = usage_res.json().get("total_usage", 0) / 100.0
-    remaining_usd = hard_limit_usd - usage_usd
-
-    return (
-        f"${hard_limit_usd:.2f}",
-        f"${usage_usd:.4f}",
-        f"${remaining_usd:.4f}"
-    )
+    return response.choices[0].message.content.strip(), response.usage.total_tokens
 
 # === Slackに通知 ===
-def notify_to_slack(markdown_summary, link):
-    today_cost = get_today_usage_dollars()
-    limit, usage, remaining = get_openai_usage_and_limit()
+def notify_to_slack(markdown_summary, link, total_tokens):
 
     message = (
         f":aws: *AWSアップデート速報*\n"
         f"{markdown_summary}\n\n"
         f"🔗 詳細: {link}\n"
-        f"💰 今日の要約コスト: {today_cost}\n"
-        f"🧾 今月の使用量: {usage} / {limit}\n"
-        f"💸 残りのクレジット: {remaining}"
+        f"💰 今日の要約トークン: {total_tokens}\n"
+        "Open AI APIの料金表は、https://openai.com/api/pricing/ をご覧ください。\n"
     )
 
     response = requests.post(SLACK_WEBHOOK_URL, json={"text": message})
@@ -114,8 +69,8 @@ def notify_to_slack(markdown_summary, link):
 # === メイン処理 ===
 def main():
     update = fetch_aws_update()
-    markdown_summary = summarize_with_openai(update["title"], update["summary"])
-    notify_to_slack(markdown_summary, update["link"])
+    markdown_summary, total_tokens = summarize_with_openai(update["title"], update["summary"])
+    notify_to_slack(markdown_summary, update["link"], total_tokens)
 
 if __name__ == "__main__":
     main()
