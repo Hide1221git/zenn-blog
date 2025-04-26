@@ -34,15 +34,24 @@ def summarize_with_openai(title, summary):
     client = OpenAI(api_key=OPENAI_API_KEY)
 
     prompt = f"""
-以下はAWS公式のアップデート情報です。
-Zennに投稿できるような技術ブログ風のMarkdown形式の要約を作成してください。
+    以下はAWS公式のアップデート情報です。
+    Zennに投稿できるような技術ブログ風のMarkdown形式の要約を作成してください。
 
-## タイトル
-{title}
+    ## タイトル
+    {title}
 
-## 概要
-{summary}
-"""
+    ## 概要
+    {summary}
+
+    ## 現在時刻を取得し、現在のAWSの仕組みと、アップデート情報で何が違うのかを比較して、どのような違いがあるのかをまとめて。また、形式は以下を守ってください。
+    ## 形式
+    ・現在までのAWSの仕組み
+    ・現在までの課題をや、クラウド環境を構築する人の悩みを収集し、端的に説明
+    ・アップデートを使って、どのように悩みが解決されるのかを説明
+
+    ## 検証方法
+
+    """
 
     response = client.chat.completions.create(
         model="gpt-4o",
