@@ -18,6 +18,6 @@
   "homepage": "https://github.com/Hide1221git/zenn-blog#readme",
   "description": "",
   "dependencies": {
-    "zenn-cli": "^0.1.159"
+    "zenn-cli": "^0.1.161"
   }
 }
